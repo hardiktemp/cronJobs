@@ -2,8 +2,7 @@ import os
 from datetime import datetime
 from zoneinfo import ZoneInfo
 
-from google_sheets import authenticate, get_data, append_data
-from funcs import parse_time
+from funcs import authenticate, get_data, append_data, parse_time
 
 '''
 This code reads from the RTO Management sheet and checks if any reship order is pending. If it is, it appends information to Manager Work sheet.

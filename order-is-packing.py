@@ -19,7 +19,7 @@ def main():
     log_sheet_id = os.getenv('LOG_SPREADSHEET_ID')
     work_sheet_id = os.getenv('WORK_SPREADSHEET_ID')
 
-    work_sheet_data = get_data(creds, work_sheet_id, 'Sheet1')
+    work_sheet_data = get_data(work_sheet_id, creds, 'Sheet1')
     header = work_sheet_data[0]
     work_sheet_work_set = set()
     for row in work_sheet_data[1:]:
@@ -27,7 +27,7 @@ def main():
     
 
     processed_orders = set()
-    sheet_data = get_data(creds, log_sheet_id, sheet_name)
+    sheet_data = get_data(log_sheet_id, creds, sheet_name)
     header = sheet_data[0]
     for row in sheet_data[1:]:
         order_number = row[header.index('Order Number')]
@@ -60,7 +60,7 @@ def main():
             if msg in work_sheet_work_set:
                 continue
             row =  [curr_datetime_ist, msg, ""]
-            append_data(creds, work_sheet_id, "Sheet1", [row])
+            append_data(work_sheet_id, creds, "Sheet1", [row])
 
         elif (now - created_at).days >= 2:
             if order_number in processed_orders:
@@ -71,11 +71,11 @@ def main():
                 success = send_message(phone, 'order_is_packing')
                 if success:
                     row = [curr_datetime_ist, order_number, phone, 'Success']
-                    append_data(creds, log_sheet_id, sheet_name, [row])
+                    append_data(log_sheet_id, creds, sheet_name, [row])
                     break
             else:
                 row = [curr_datetime_ist, order_number, phone, 'Failed']
-                append_data(creds, log_sheet_id, sheet_name, [row])
+                append_data(log_sheet_id, creds, sheet_name, [row])
                 
     
 

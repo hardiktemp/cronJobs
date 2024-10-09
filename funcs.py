@@ -40,7 +40,7 @@ def get_last_row(service, spreadsheet_id, sheet_name):
     return len(values) + 1
 
 
-def append_data(creds, spreadsheet_id, sheet_name, values, value_input_option='USER_ENTERED'):
+def append_data(spreadsheet_id, creds, sheet_name, values, value_input_option='USER_ENTERED'):
     try:
         # Build the service
         service = build("sheets", "v4", credentials=creds)
@@ -74,7 +74,7 @@ def append_data(creds, spreadsheet_id, sheet_name, values, value_input_option='U
         return None
 
 
-def get_data(creds, spreadsheet_id, range):
+def get_data(spreadsheet_id, creds, range):
     try:
         service = build('sheets', 'v4', credentials=creds)
 
