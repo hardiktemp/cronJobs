@@ -19,7 +19,7 @@ def main():
 
     query = {
         'cancelled': False,
-        'financial_status': 'pending',
+        'financial_status': {'$in': ['pending', 'partially_paid']},
         'fullfilment_status': None,
         'price': {'$lte': 20}
     }
