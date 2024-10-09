@@ -21,7 +21,7 @@ def main():
 
     work_sheet_data = get_data(creds, work_sheet_id, 'Sheet1')
     header = work_sheet_data[0]
-    work_sheet_work_set  =set()
+    work_sheet_work_set = set()
     for row in work_sheet_data[1:]:
         work_sheet_work_set.add(row[header.index('Work')])
     
