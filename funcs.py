@@ -1,6 +1,8 @@
 import os
+import re
 import json
 import base64
+import random
 import requests
 from zoneinfo import ZoneInfo
 from dotenv import load_dotenv
@@ -88,6 +90,138 @@ def get_data(spreadsheet_id, creds, range):
         print("ERROR: " + str(err))
 
 
+def write_data(spreadsheet_id, creds, range_name, values):
+    # Build the service
+    service = build('sheets', 'v4', credentials=creds)
+
+    # Specify the body of the update
+    body = {
+        'values': values
+    }
+
+    # Call the Sheets API to update the sheet
+    result = service.spreadsheets().values().update(
+        spreadsheetId=spreadsheet_id,
+        range=range_name,
+        valueInputOption='USER_ENTERED',
+        body=body
+    ).execute()
+
+    return result
+
+
+def update_range_color(spreadsheet_id, creds, range_name, color_rgb):
+    from googleapiclient.discovery import build
+
+    # Build the service
+    service = build('sheets', 'v4', credentials=creds)
+
+    # Parse the range_name
+    sheet_name, cell_range = range_name.split('!')
+    start_col, start_row, end_col, end_row = get_grid_range(cell_range)
+
+    # Get the sheet ID
+    sheet_id = get_sheet_id(service, spreadsheet_id, sheet_name)
+
+    # Specify the request body for updating the background color
+    requests = [
+        {
+            'repeatCell': {
+                'range': {
+                    'sheetId': sheet_id,
+                    'startRowIndex': start_row - 1,
+                    'endRowIndex': end_row,
+                    'startColumnIndex': start_col - 1,
+                    'endColumnIndex': end_col
+                },
+                'cell': {
+                    'userEnteredFormat': {
+                        'backgroundColor': {
+                            'red': color_rgb[0] / 255.0,
+                            'green': color_rgb[1] / 255.0,
+                            'blue': color_rgb[2] / 255.0
+                        }
+                    }
+                },
+                'fields': 'userEnteredFormat.backgroundColor'
+            }
+        }
+    ]
+
+    # Call the Sheets API to update the sheet
+    body = {'requests': requests}
+    result = service.spreadsheets().batchUpdate(
+        spreadsheetId=spreadsheet_id,
+        body=body
+    ).execute()
+
+    return result
+
+
+def get_grid_range(cell_range):
+    import re
+
+    # Pattern for "A1:B2" format
+    range_pattern = r'([A-Z]+)(\d+):([A-Z]+)(\d+)'
+    # Pattern for single cell or full row like "A1"
+    single_cell_pattern = r'([A-Z]+)(\d+)'
+
+    range_match = re.match(range_pattern, cell_range)
+    single_cell_match = re.match(single_cell_pattern, cell_range)
+
+    if range_match:
+        start_col = column_letter_to_number(range_match.group(1))
+        start_row = int(range_match.group(2))
+        end_col = column_letter_to_number(range_match.group(3))
+        end_row = int(range_match.group(4))
+        return start_col, start_row, end_col, end_row
+    elif single_cell_match:
+        col = column_letter_to_number(single_cell_match.group(1))
+        row = int(single_cell_match.group(2))
+        return col, row, None, row
+    else:
+        raise ValueError("Invalid cell range format")
+    
+
+def column_letter_to_number(column_letter):
+    number = 0
+    for char in column_letter:
+        number = number * 26 + (ord(char.upper()) - ord('A') + 1)
+    return number
+
+
+# Initialize a global cache for sheet IDs
+sheet_id_cache = {}
+
+def get_sheet_id(service, spreadsheet_id, sheet_name):
+    global sheet_id_cache
+
+    # Create a composite key for caching
+    composite_key = (spreadsheet_id, sheet_name)
+    
+    # Check if the sheet_id is already cached
+    if composite_key in sheet_id_cache:
+        return sheet_id_cache[composite_key]
+    
+    # If the cache is empty for this spreadsheet, populate it with all sheets
+    if not any(key[0] == spreadsheet_id for key in sheet_id_cache):
+        # Fetch all sheets information
+        sheet_metadata = service.spreadsheets().get(spreadsheetId=spreadsheet_id).execute()
+        sheets = sheet_metadata.get('sheets', '')
+        for sheet in sheets:
+            # Cache the retrieved sheet_id for each sheet
+            sheet_title = sheet["properties"]["title"]
+            sheet_id = sheet['properties']['sheetId']
+            cache_key = (spreadsheet_id, sheet_title)
+            sheet_id_cache[cache_key] = sheet_id
+    
+    # After populating, return the sheet_id if it exists
+    if composite_key in sheet_id_cache:
+        return sheet_id_cache[composite_key]
+    
+    raise ValueError(f"Sheet '{sheet_name}' not found in spreadsheet '{spreadsheet_id}'")
+
+
 def parse_time(datetime_obj):
     local_system = os.getenv('LOCAL_SYSTEM')
 
@@ -149,3 +283,71 @@ def send_message(phone, template_name, params_dict={}):
         return False
     
     return True
+
+def generate_random_alphanumeric(length=12):
+    """Generate a random alphanumeric string of a specified length."""
+    characters = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'J', 'K', 'L', 'M', 
+                  'N', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z', 
+                  '2', '3', '4', '5', '6', '7', '8', '9']  # Exclude O, 0, I, 1
+    
+    return ''.join(random.choice(characters) for _ in range(length))
+
+
+def clean_phone(phone):
+    phone = re.sub(r'\D', '', str(phone))
+    if len(phone) > 10:
+        phone = phone[-10:]
+    return phone
+
+
+def generate_coupon_code(coupon_code, amount, start_date, end_date=None):
+    # Payload for the new price rule
+    price_rule_payload = {
+        "price_rule": {
+            "title": coupon_code,
+            "target_type": "line_item",
+            "target_selection": "all",
+            "allocation_method": "across",
+            "value_type": "fixed_amount",
+            "value": f"-{amount}",
+            "customer_selection": "all",
+            "starts_at": start_date,
+            "usage_limit": 1,
+            "entitled_product_ids": [],
+            "entitled_collection_ids": [],
+        }
+    }
+
+    if end_date:
+        price_rule_payload['price_rule']['ends_at'] = end_date
+
+
+    # Making the POST request to create the new price rule
+    url_price_rule = store_url + '/price_rules.json'
+    response = requests.post(url_price_rule, headers=shopify_headers, data=json.dumps(price_rule_payload))
+
+    if response.status_code == 201:
+        price_rule_data = response.json()
+        price_rule_id = price_rule_data['price_rule']['id']
+        
+        # Now create a discount code for this price rule
+        url_discount_code = store_url + f'/price_rules/{price_rule_id}/discount_codes.json'
+        
+        discount_code_payload = {
+            "discount_code": {
+                "code": coupon_code
+            }
+        }
+        
+        response_discount_code = requests.post(url_discount_code, headers=shopify_headers, data=json.dumps(discount_code_payload))
+        
+        if response_discount_code.status_code == 201:
+            discount_code_data = response_discount_code.json()
+        else:
+            print("Failed to create discount code. Status code:", response_discount_code.status_code)
+            print(response_discount_code.text)
+            raise Exception("Failed to create discount code.")
+    else:
+        print("Failed to create price rule. Status code:", response.status_code)
+        print(response.text)
+        raise Exception("Failed to create price rule.")
