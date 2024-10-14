@@ -28,6 +28,18 @@ def issue_main(creds):
     sheet_data = get_data(customer_support_sheet_id, creds, sheet_name)
     header = sheet_data[0]
 
+    already_processed = set()
+    for i, row in enumerate(sheet_data[1:], start=2):
+        row += [''] * (len(header) - len(row))
+        order_number = row[header.index('Order Number*')]
+
+        if not order_number:
+            continue
+
+        if (row[header.index('Processed')]):
+            already_processed.add(order_number)
+
+
     log("\nProcessing each row\n")
     for i, row in enumerate(sheet_data[1:], start=2):
         row += [''] * (len(header) - len(row))
@@ -37,6 +49,13 @@ def issue_main(creds):
         if not order_number or processed:
             continue
         
+        if order_number in already_processed:
+            row[header.index('Processed')] = datetime.now().strftime('%d-%m-%Y %H:%M:%S')
+            row[header.index('Message Sent')] = "Y"
+            row[header.index('Remarks')] += "Already processed earlier."
+            write_data(customer_support_sheet_id, creds, f'{sheet_name}!A{i}', [row])
+            continue
+
         amount = row[header.index('Credit Amount*')]
 
         if not amount:
@@ -69,6 +88,7 @@ def issue_main(creds):
         row[header.index('Remarks')] = ""
 
         write_data(customer_support_sheet_id, creds, f'{sheet_name}!A{i}', [row])
+        already_processed.add(order_number)
 
 
 def color_and_update(header, row, index, sheet_id, creds, sheet_name):
