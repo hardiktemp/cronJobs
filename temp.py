@@ -17,6 +17,10 @@ def main():
     creds = authenticate()
     sheet_name = 'Order-is-packing'
     log_sheet_id = os.getenv('LOG_SPREADSHEET_ID')
+    sample_row = ['Date', '1234', 'Phone', 'DONE']
+    append_data(log_sheet_id, creds, sheet_name, [sample_row])
+    exit()
+
     work_sheet_id = os.getenv('WORK_SPREADSHEET_ID')
 
     work_sheet_data = get_data(work_sheet_id, creds, 'Sheet1')

@@ -56,7 +56,7 @@ def issue_main(creds):
             write_data(customer_support_sheet_id, creds, f'{sheet_name}!A{i}', [row])
             continue
 
-        amount = row[header.index('Credit Amount*')]
+        amount = float(row[header.index('Credit Amount*')].replace(",", "").strip())
 
         if not amount:
             row[header.index('Remarks')] = "Amount not provided"

@@ -31,25 +31,13 @@ def authenticate():
     return creds
 
 
-def get_last_row(service, spreadsheet_id, sheet_name):
-    # Retrieve the data from the sheet to find the last row
-    result = service.spreadsheets().values().get(
-        spreadsheetId=spreadsheet_id,
-        range=f'{sheet_name}'
-    ).execute()
-
-    values = result.get('values', [])
-    return len(values) + 1
-
-
 def append_data(spreadsheet_id, creds, sheet_name, values, value_input_option='USER_ENTERED'):
     try:
         # Build the service
         service = build("sheets", "v4", credentials=creds)
 
-        # Find the next available row
-        next_row = get_last_row(service, spreadsheet_id, sheet_name)
-        range_name = f'{sheet_name}!A{next_row}'
+        # Specify the range to append to (you can use sheet name or leave it empty)
+        range_name = f'{sheet_name}!A:A'  # Append to the first column, adjust as needed
 
         # Specify the body of the append
         body = {
@@ -57,23 +45,20 @@ def append_data(spreadsheet_id, creds, sheet_name, values, value_input_option='U
         }
 
         # Call the Sheets API to append the data
-        result = (
-            service.spreadsheets()
-            .values()
-            .update(
-                spreadsheetId=spreadsheet_id,
-                range=range_name,
-                valueInputOption=value_input_option,
-                body=body
-            )
-            .execute()
-        )
+        result = service.spreadsheets().values().append(
+            spreadsheetId=spreadsheet_id,
+            range=range_name,
+            valueInputOption=value_input_option,
+            insertDataOption='INSERT_ROWS',
+            body=body
+        ).execute()
 
         return result
 
     except Exception as e:
         print(f"An error occurred: {e}")
         return None
+
 
 
 def get_data(spreadsheet_id, creds, range):
@@ -229,7 +214,7 @@ def parse_time(datetime_obj):
         datetime_obj = datetime_obj.replace(tzinfo=ZoneInfo('UTC'))
 
     if local_system:
-        datetime_obj = datetime_obj.astimezone(ZoneInfo(IST))
+        datetime_obj = datetime_obj.astimezone(IST)
 
     return datetime_obj
 
