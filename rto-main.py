@@ -50,7 +50,7 @@ def process_prepaid(creds):
 
         order_number = row[header.index('Order No')]
         print(f"\nProcessing row {i}")
-        amount = row[header.index('Amount')]
+        amount = float(row[header.index('Amount')].replace(',', '').strip())
         phone = clean_phone(row[header.index('Phone')])
         
         if not phone:
