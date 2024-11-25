@@ -1,10 +1,11 @@
-import requests
 import os
+import requests
+from datetime import datetime
+from zoneinfo import ZoneInfo
 from dotenv import load_dotenv
 from pymongo import MongoClient
-from datetime import datetime
 
-from funcs import store_url, shopify_headers, parse_time, append_data, authenticate
+from funcs import store_url, shopify_headers, append_data, authenticate
 
 '''
 This code checks all the orders that are CoD < Rs.20 and unfullfilled and marks them as paid.
@@ -26,8 +27,7 @@ def main():
 
     orders = orders_collection.find(query)
     
-    now = parse_time(datetime.now())
-    curr_datetime = now.strftime('%d-%m-%Y %H:%M:%S')
+    curr_datetime_ist = datetime.now(IST).strftime('%d-%m-%Y %H:%M:%S')
 
     for order in orders:
         order_id = order['id']
@@ -37,11 +37,11 @@ def main():
         for _ in range(3):
             success = mark_as_paid(order_id)
             if success:
-                row = [curr_datetime, order_num, amount, 'True']
+                row = [curr_datetime_ist, order_num, amount, 'True']
                 append_data(creds, log_sheet_id, sheet_name, [row])
                 break
         else:
-            row = [curr_datetime, order_num, amount, 'False']
+            row = [curr_datetime_ist, order_num, amount, 'False']
             append_data(creds, log_sheet_id, sheet_name, [row])
 
 
@@ -71,6 +71,7 @@ def log(msg, indent=0):
     print('  ' * indent + msg)
 
 if __name__ == "__main__":
+    IST = ZoneInfo('Asia/Kolkata')
     creds = authenticate()
     log_sheet_id = os.getenv('LOG_SPREADSHEET_ID')
     sheet_name = 'cod2prepaid'

@@ -5,7 +5,7 @@ from datetime import datetime
 from dotenv import load_dotenv
 from pymongo import MongoClient
 
-from funcs import authenticate, get_data, append_data, send_message, parse_time
+from funcs import authenticate, get_data, append_data, send_message
 
 load_dotenv()
 
@@ -33,27 +33,21 @@ def main():
     }
     orders = orders_collection.find(query)
 
-    now = parse_time(datetime.now())
-    curr_datetime = now.strftime('%d-%m-%Y %H:%M:%S')
+    now = datetime.now(UTC)
+    curr_datetime_ist = datetime.now(IST).strftime('%d-%m-%Y %H:%M:%S')
     
-    local_system = os.getenv('LOCAL_SYSTEM')
-    if local_system == False:
-        curr_datetime_ist = now.astimezone(ZoneInfo('Asia/Kolkata')).strftime('%d-%m-%Y %H:%M:%S')
-    else:
-        curr_datetime_ist = curr_datetime
-
     for order in orders:
-        created_at = parse_time(order['created_at'].replace(tzinfo=ZoneInfo('UTC')))
+        created_at = order['created_at'] # in UTC
         order_number = str(int(order['order_number']))
 
-        if (now - created_at).days >= 4:
+        if (now.isoformat() - created_at).days >= 4:
             msg = f'Order {order_number} is not packed yet.'
             if msg in work_sheet_work_set:
                 continue
             row =  [curr_datetime_ist, msg, ""]
             append_data(work_sheet_id, creds, "Sheet1", [row])
 
-        elif (now - created_at).days >= 2:
+        elif (now.isoformat() - created_at).days >= 2:
             phone = str(order['phone'])  
             for _ in range(3):
                 success = send_message(phone, 'order_is_packing')
@@ -73,5 +67,6 @@ def main():
 
 
 if __name__ == '__main__':
+    UTC = ZoneInfo('UTC')
     IST = ZoneInfo('Asia/Kolkata')
     main()

@@ -2,7 +2,7 @@ import os
 from datetime import datetime
 from zoneinfo import ZoneInfo
 
-from funcs import authenticate, get_data, append_data, parse_time
+from funcs import authenticate, get_data, append_data
 
 '''
 This code reads from the RTO Management sheet and checks if any reship order is pending. If it is, it appends information to Manager Work sheet.
@@ -24,14 +24,7 @@ def main():
 def process_data(sheet_data, prepaid=True):
     global work_sheet_work_set
 
-    now = parse_time(datetime.now())
-    curr_datetime = now.strftime('%d-%m-%Y %H:%M:%S')
-    
-    local_system = os.getenv('LOCAL_SYSTEM')
-    if local_system == False:
-        curr_datetime_ist = now.astimezone(ZoneInfo(IST)).strftime('%d-%m-%Y %H:%M:%S')
-    else:
-        curr_datetime_ist = curr_datetime
+    curr_datetime_ist = datetime.now(IST).strftime('%d-%m-%Y %H:%M:%S')
     
     header = sheet_data[0]
     for row in sheet_data[1:]:

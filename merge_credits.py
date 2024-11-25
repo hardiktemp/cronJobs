@@ -8,7 +8,7 @@ from pymongo import MongoClient
 
 from funcs import authenticate, get_data, write_data, update_range_color
 from funcs import store_url, shopify_headers
-from funcs import send_message
+from funcs import send_message, clean_phone
 
 load_dotenv()
 
@@ -32,7 +32,7 @@ def main(creds):
         log("\nProcessing each row\n")
         row += [''] * (len(header) - len(row))
         coupon_codes = row[header.index('Coupon Codes*')].split(',')
-        phone_number = row[header.index('Phone Number*')]
+        phone_number = clean_phone(row[header.index('Phone Number*')])
         
         if not coupon_codes:
             continue
@@ -126,7 +126,7 @@ def main(creds):
                 row[header.index('Updated Code')] = valid_coupons[0].code
                 row[header.index('Updated Amount')] = amount
                 
-                success = send_message(phone_number, 'credits_merged_1', {"new_coupon_code": valid_coupons[0], "new_credit_amount": amount, "old_coupon_codes": old_coupon_codes})
+                success = send_message(phone_number, 'credits_merged_1', {"new_coupon_code": valid_coupons[0].code, "new_credit_amount": amount, "old_coupon_codes": old_coupon_codes})
 
                 row[header.index('Message Sent')] = 'Yes' if success else 'No'
                 write_data(sheet_id, creds, f'{sheet_name}!A{i}', [row])
