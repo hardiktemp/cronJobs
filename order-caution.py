@@ -1,5 +1,5 @@
 import os
-
+import time
 from zoneinfo import ZoneInfo
 from dotenv import load_dotenv
 from pymongo import MongoClient
@@ -43,6 +43,7 @@ def main():
                 row = [curr_datetime_ist, order_number, phone, 'Success']
                 append_data(log_sheet_id, creds, sheet_name, [row])
                 break
+            time.sleep(0.5)
         else:
             row = [curr_datetime_ist, order_number, phone, 'Failed']
             append_data(log_sheet_id, creds, sheet_name, [row])
