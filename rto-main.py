@@ -27,7 +27,52 @@ def main():
 
     print("\nProcessing Prepaid RTOs\n")
     process_prepaid(creds)
+
+    print("\nProcessing Prepaid Reship RTOs\n")
+    process_prepaid_reship(creds)
     
+
+
+def process_prepaid_reship(creds):
+    tz = ZoneInfo('Asia/Kolkata')
+    sheet_data = get_data(RTO_SPREADSHEET_ID, creds, 'Prepaid-Reship-RTO')
+    header = sheet_data[0]
+
+    for i, row in enumerate(sheet_data[1:], start=2):
+        if not row:
+            continue
+
+        row += [''] * (len(header) - len(row))
+        if not row[header.index('Scan Date')] and row[header.index('Manual Received')].lower().strip() != 'y':
+            continue
+
+        if row[header.index('Coupon Code')]:
+            continue
+
+        order_number = row[header.index('Order No')]
+        print(f"\nProcessing row {i}")
+        amount = float(row[header.index('Amount')].replace(',', '').strip())
+        phone = clean_phone(row[header.index('Phone')])
+        
+        if not phone:
+            print(f"    Error: No phone found for order {order_number}")
+            continue
+        
+        coupon_code = generate_random_alphanumeric(12)
+        start_date = datetime.datetime.now(tz).isoformat()
+        end_date = (datetime.datetime.now(tz) + datetime.timedelta(days=180)).isoformat()
+        generate_coupon_code(coupon_code, amount, start_date, end_date)
+
+        print(f"    Sending message to {phone}")
+        success = send_message(phone, 'reship_rto', {'credit_amount': amount, 'coupon_code': coupon_code})
+        coupon_code_column = chr(ord('A') + header.index('Coupon Code'))
+        print(f"    Writing code {coupon_code} to sheet")
+        write_data(RTO_SPREADSHEET_ID, creds, f'Prepaid-Reship-RTO!{coupon_code_column}{i}', [[coupon_code]])
+
+        conveyed_column = chr(ord('A') + header.index('Conveyed to Customer'))
+        conveyed = 'Y' if success else 'N'
+        write_data(RTO_SPREADSHEET_ID, creds, f'Prepaid-Reship-RTO!{conveyed_column}{i}', [[conveyed]])
+
 
 def process_prepaid(creds):
     tz = ZoneInfo('Asia/Kolkata')
