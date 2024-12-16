@@ -13,11 +13,15 @@ from funcs import send_message, clean_phone
 load_dotenv()
 
 '''
+Send message has been updated. Check if it works.
+
 This code is ready but not tested rigrously.
 Please use with caution.
+
 '''
 
 def main(creds):
+    raise Exception("Have to check message sending")
     sheet_name = 'Merge Credits'
     sheet_id = os.getenv('CUSTOMER_SUPPORT_AUTOMATION_ID')
     client = MongoClient(os.getenv('MONGO_URI'))
@@ -126,7 +130,7 @@ def main(creds):
                 row[header.index('Updated Code')] = valid_coupons[0].code
                 row[header.index('Updated Amount')] = amount
                 
-                success = send_message(phone_number, 'credits_merged_1', {"new_coupon_code": valid_coupons[0].code, "new_credit_amount": amount, "old_coupon_codes": old_coupon_codes})
+                success = send_message(phone_number, 'credits_merged_1', {"new_coupon_code": valid_coupons[0].code, "new_credit_amount": amount, "old_coupon_codes": ", ".join(old_coupon_codes)})
 
                 row[header.index('Message Sent')] = 'Yes' if success else 'No'
                 write_data(sheet_id, creds, f'{sheet_name}!A{i}', [row])

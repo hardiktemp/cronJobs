@@ -50,7 +50,7 @@ def main():
         elif (now - created_at).days >= 2:
             phone = str(order['phone'])  
             for _ in range(3):
-                success = send_message(phone, 'order_is_packing')
+                success = send_message(phone, 'order_is_packing_2')
                 if success:
                     row = [curr_datetime_ist, order_number, phone, 'Success']
                     append_data(log_sheet_id, creds, sheet_name, [row])
